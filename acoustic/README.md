@@ -24,36 +24,94 @@ As defined in the team responsibility matrix, Member 03 owns:
 
 ---
 
-## 3. Planned Modules
+## 3. Module Architecture & Status
 
-The acoustic package will be developed across modular Python components in subsequent commits. 
+The acoustic package is structured into modular Python components:
 
-> **Notice:** The following components represent planned modules. They will be implemented iteratively in designated commits; no placeholder or dummy code is introduced prematurely.
+1. **`generator.py`** *(Implemented in Commit 03)*  
+   Responsible for synthetic audio generation, baseline fan acoustic profiles, and controlled synthetic acoustic anomalies (e.g., frequency-shift or amplitude-modulated covert patterns) to enable testing without physical hardware. Currently implements `generate_sine_wave()`.
 
-1. **`generator.py`**  
-   Responsible for synthetic server-room audio generation, baseline fan acoustic profiles, and controlled synthetic acoustic anomalies (e.g., frequency-shift or amplitude-modulated covert patterns) to enable testing without physical hardware.
-
-2. **`audio_io.py`**  
+2. **`audio_io.py`** *(Planned)*  
    Responsible for loading, validating, and saving standard uncompressed WAV audio files with strict sample rate and bit-depth validation.
 
-3. **`recorder.py`**  
+3. **`recorder.py`** *(Planned)*  
    Responsible for real-time microphone recording and audio stream acquisition using PyAudio when physical microphone hardware is attached.
 
-4. **`filters.py`**  
+4. **`filters.py`** *(Planned)*  
    Responsible for digital signal filtering using SciPy, including Butterworth bandpass, lowpass, highpass filtering, and noise suppression techniques.
 
-5. **`fft_analysis.py`**  
+5. **`fft_analysis.py`** *(Planned)*  
    Responsible for frequency-domain analysis using FFT, calculating magnitude spectra, power spectral density (PSD), and detecting dominant spectral peaks.
 
-6. **`spectrogram.py`**  
+6. **`spectrogram.py`** *(Planned)*  
    Responsible for time-frequency analysis and Short-Time Fourier Transform (STFT) spectrogram computation, supporting both numerical matrix output and visualization.
 
-7. **`features.py`**  
+7. **`features.py`** *(Planned)*  
    Responsible for extracting numerical acoustic features (such as spectral centroid, spectral rolloff, spectral flux, energy variance, and band ratios) for downstream machine learning analysis.
 
 ---
 
-## 4. Acoustic Processing Pipeline
+## 4. Synthetic Audio Generator (`generator.py`)
+
+The `acoustic.generator` module provides offline synthetic audio generation using NumPy without hardware or network requirements.
+
+### 4.1 `generate_sine_wave()`
+
+Generates a continuous sinusoidal audio waveform:
+$$y(t) = A \cdot \sin(2\pi f t + \phi)$$
+
+#### Parameters
+
+| Parameter | Type | Default | Description | Constraints |
+|---|---|---|---|---|
+| `frequency` | `float` | *Required* | Tone frequency in Hertz (Hz) | Must be positive ($f > 0$) and strictly below Nyquist limit ($f < f_s / 2$) |
+| `duration` | `float` | *Required* | Signal length in seconds | Must be positive ($\text{duration} > 0$) |
+| `sample_rate` | `int` | `44100` | Sampling frequency in Hz | Must be a positive integer ($f_s > 0$) |
+| `amplitude` | `float` | `1.0` | Peak normalized amplitude | Must be within range $[0.0, 1.0]$ |
+| `phase` | `float` | `0.0` | Initial phase angle in radians | Numeric value |
+| `dtype` | `np.dtype` | `np.float64` | Output NumPy data type | e.g. `np.float64`, `np.float32` |
+
+#### Return Value
+Returns a 1D `numpy.ndarray` containing the computed discrete time-domain audio samples with length $N = \text{round}(\text{duration} \times \text{sample\_rate})$.
+
+#### Validation and Error Handling
+- **`TypeError`**: Raised if non-numeric inputs are provided for frequency, duration, sample rate, amplitude, or phase.
+- **`ValueError`**:
+  - `frequency <= 0`: Non-positive frequencies are rejected.
+  - `frequency >= sample_rate / 2`: Frequencies violating the Nyquist-Shannon sampling theorem are rejected.
+  - `duration <= 0` or `sample_rate <= 0`: Non-positive duration or sampling rates are rejected.
+  - `amplitude < 0.0` or `amplitude > 1.0`: Out-of-bounds normalized amplitudes are rejected.
+
+### 4.2 Usage Example
+
+```python
+from acoustic import generate_sine_wave
+import numpy as np
+
+# 1. Generate a 1-second 440 Hz test tone at 44.1 kHz
+audio = generate_sine_wave(
+    frequency=440.0,
+    duration=1.0,
+    sample_rate=44100,
+    amplitude=0.8
+)
+
+print(f"Sample count: {len(audio)}")
+print(f"Max peak: {np.max(audio):.4f}, Min peak: {np.min(audio):.4f}")
+print(f"Data type: {audio.dtype}")
+
+# 2. Generate a 60 Hz synthetic cooling fan hum
+fan_hum = generate_sine_wave(
+    frequency=60.0,
+    duration=2.5,
+    sample_rate=16000,
+    amplitude=0.5
+)
+```
+
+---
+
+## 5. Acoustic Processing Pipeline
 
 The acoustic signal flow operates according to the following conceptual pipeline:
 
@@ -108,7 +166,7 @@ The acoustic signal flow operates according to the following conceptual pipeline
 
 ---
 
-## 5. Technology Stack
+## 6. Technology Stack
 
 The module relies strictly on standard local scientific Python libraries:
 
@@ -121,7 +179,7 @@ The module relies strictly on standard local scientific Python libraries:
 
 ---
 
-## 6. Offline-First Architecture
+## 7. Offline-First Architecture
 
 AetherHound is designed for high-security, air-gapped environments. Consequently, the acoustic DSP module adheres strictly to an offline-first architecture:
 
@@ -131,7 +189,7 @@ AetherHound is designed for high-security, air-gapped environments. Consequently
 
 ---
 
-## 7. Future Integration
+## 8. Future Integration
 
 The acoustic DSP package is designed with clear modular boundaries:
 
@@ -141,9 +199,9 @@ The acoustic DSP package is designed with clear modular boundaries:
 
 ---
 
-## 8. Dependencies & Linux Installation
+## 9. Dependencies & Linux Installation
 
-### 8.1 Dependency Classification
+### 9.1 Dependency Classification
 
 To maintain a clean offline-first footprint, dependencies are divided into **Required** (core DSP, synthetic signal generation, analysis, visualization) and **Optional** (hardware-dependent real-time microphone capture):
 
@@ -157,11 +215,11 @@ To maintain a clean offline-first footprint, dependencies are divided into **Req
 
 > **Note on Hardware Independence:** Synthetic audio generation, digital filtering, FFT, spectrogram calculation, and feature extraction operate completely without `pyaudio` or physical microphone hardware.
 
-### 8.2 Repository Dependency Strategy
+### 9.2 Repository Dependency Strategy
 
 To avoid duplicate configuration files and conflicting version constraints across team members, all project dependencies are managed centrally in the root [`requirements.txt`](../requirements.txt).
 
-### 8.3 Linux Installation Guide
+### 9.3 Linux Installation Guide
 
 #### Option A: Python Virtual Environment (Recommended)
 Modern Linux distributions (Debian 12+, Ubuntu 24.04+, Arch Linux) enforce [PEP 668](https://peps.python.org/pep-0668/) externally managed environments. A virtual environment is the recommended installation path:
@@ -204,7 +262,7 @@ If compiling `pyaudio` from source or linking against native audio libraries, in
   sudo dnf install libsndfile portaudio-devel
   ```
 
-### 8.4 Offline / Air-Gapped Deployment
+### 9.4 Offline / Air-Gapped Deployment
 For air-gapped computers with no internet access:
 1. On an internet-connected staging machine, download pre-built wheels:
    ```bash
