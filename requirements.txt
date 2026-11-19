@@ -1,0 +1,26 @@
+# AetherHound Project Dependencies
+# Local, offline-first digital signal processing and hardware acquisition
+
+# ==============================================================================
+# Core DSP & Numerical Computation (Required)
+# ==============================================================================
+# Vectorized array manipulation and signal buffers (shared with RF & Architecture)
+numpy>=1.24.0
+
+# Digital signal filtering (Butterworth, IIR/FIR), windowing, and STFT transforms
+scipy>=1.10.0
+
+# Lossless WAV audio file I/O with precise sample rate and bit-depth control
+soundfile>=0.12.1
+
+# Offline spectrogram rendering, frequency spectrum plots, and diagnostics
+matplotlib>=3.7.0
+
+# ==============================================================================
+# Hardware Audio Acquisition (Optional)
+# ==============================================================================
+# Real-time microphone audio capture via PortAudio.
+# Optional: Not required for synthetic audio generation, offline DSP, or feature extraction.
+# System prerequisite on Linux: PortAudio development headers (e.g., portaudio19-dev)
+pyaudio>=0.2.13
+

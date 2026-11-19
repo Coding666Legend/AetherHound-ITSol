@@ -30,5 +30,6 @@ AetherHound/
 |   |-- synthetic/      # Synthetic signal samples for testing
 |-- tests/              # Test suites
 |   |-- __init__.py
+|-- requirements.txt    # Project Python dependencies
 |-- README.md           # Project documentation
 ```
