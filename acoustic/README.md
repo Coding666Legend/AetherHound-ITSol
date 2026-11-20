@@ -82,10 +82,28 @@ Returns a 1D `numpy.ndarray` containing the computed discrete time-domain audio 
   - `duration <= 0` or `sample_rate <= 0`: Non-positive duration or sampling rates are rejected.
   - `amplitude < 0.0` or `amplitude > 1.0`: Out-of-bounds normalized amplitudes are rejected.
 
-### 4.2 Usage Example
+### 4.2 `generate_fan_noise()`
+
+Synthesizes multi-harmonic rotational cooling fan tones accompanied by broadband aerodynamic turbulence noise:
+$$y(t) = \sum_{k=1}^{M} w_k \cdot \sin(2\pi \cdot k f_0 \cdot t) + \alpha \cdot \mathcal{N}(0, 1)$$
+
+#### Parameters
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `base_frequency` | `float` | *Required* | Fundamental Blade Pass Frequency in Hz ($f_0 > 0$) |
+| `duration` | `float` | *Required* | Signal length in seconds ($> 0$) |
+| `sample_rate` | `int` | `44100` | Sampling rate in Hz |
+| `harmonics` | `Sequence[float]` | `(1.0, 0.5, 0.25, 0.125)` | Relative amplitude weights of harmonic overtones |
+| `amplitude` | `float` | `0.8` | Peak normalized output amplitude in range $[0.0, 1.0]$ |
+| `noise_level` | `float` | `0.1` | Broadband airflow turbulence noise level $[0.0, 1.0]$ |
+| `seed` | `Optional[int]` | `None` | Random seed for deterministic reproducibility |
+| `dtype` | `Any` | `np.float64` | Output floating-point NumPy data type |
+
+### 4.3 Usage Example
 
 ```python
-from acoustic import generate_sine_wave
+from acoustic import generate_fan_noise, generate_sine_wave
 import numpy as np
 
 # 1. Generate a 1-second 440 Hz test tone at 44.1 kHz
@@ -96,16 +114,15 @@ audio = generate_sine_wave(
     amplitude=0.8
 )
 
-print(f"Sample count: {len(audio)}")
-print(f"Max peak: {np.max(audio):.4f}, Min peak: {np.min(audio):.4f}")
-print(f"Data type: {audio.dtype}")
-
-# 2. Generate a 60 Hz synthetic cooling fan hum
-fan_hum = generate_sine_wave(
-    frequency=60.0,
-    duration=2.5,
-    sample_rate=16000,
-    amplitude=0.5
+# 2. Generate a 150 Hz synthetic server cooling fan hum with 4 harmonics
+fan_audio = generate_fan_noise(
+    base_frequency=150.0,
+    duration=2.0,
+    sample_rate=44100,
+    harmonics=(1.0, 0.6, 0.3, 0.15),
+    amplitude=0.75,
+    noise_level=0.15,
+    seed=42
 )
 ```
 
