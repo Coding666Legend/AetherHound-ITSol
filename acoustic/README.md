@@ -37,8 +37,8 @@ The acoustic package is structured into modular Python components:
 3. **`recorder.py`** *(Planned)*  
    Responsible for real-time microphone recording and audio stream acquisition using PyAudio when physical microphone hardware is attached.
 
-4. **`filters.py`** *(Planned)*  
-   Responsible for digital signal filtering using SciPy, including Butterworth bandpass, lowpass, highpass filtering, and noise suppression techniques.
+4. **`filters.py`** *(Implemented in Commit 07)*  
+   Responsible for digital signal filtering using SciPy, including zero-phase Butterworth bandpass, lowpass, highpass filtering, and noise suppression techniques. Provides `butter_lowpass_filter()`, `butter_highpass_filter()`, and `butter_bandpass_filter()`.
 
 5. **`fft_analysis.py`** *(Planned)*  
    Responsible for frequency-domain analysis using FFT, calculating magnitude spectra, power spectral density (PSD), and detecting dominant spectral peaks.
@@ -176,7 +176,17 @@ print(f"Loaded {len(loaded_audio)} samples at {sr} Hz")
 
 ---
 
-## 6. Acoustic Processing Pipeline
+## 6. Digital Audio Filtering (`filters.py`)
+
+The `acoustic.filters` module provides zero-phase digital filtering using SciPy (`scipy.signal.butter` and `scipy.signal.filtfilt`):
+
+- **`butter_lowpass_filter(data, cutoff_freq, sample_rate=44100, order=4)`**: Attenuates high-frequency hiss and transient spikes above `cutoff_freq`.
+- **`butter_highpass_filter(data, cutoff_freq, sample_rate=44100, order=4)`**: Removes DC offsets, sub-audible mechanical rumble, and low-frequency drift below `cutoff_freq`.
+- **`butter_bandpass_filter(data, low_cutoff, high_cutoff, sample_rate=44100, order=4)`**: Isolates specific acoustic frequency bands of interest (such as fan blade-pass harmonics or ultrasonic communication channels).
+
+---
+
+## 7. Acoustic Processing Pipeline
 
 The acoustic signal flow operates according to the following conceptual pipeline:
 
