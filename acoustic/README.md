@@ -31,8 +31,8 @@ The acoustic package is structured into modular Python components:
 1. **`generator.py`** *(Implemented in Commit 03)*  
    Responsible for synthetic audio generation, baseline fan acoustic profiles, and controlled synthetic acoustic anomalies (e.g., frequency-shift or amplitude-modulated covert patterns) to enable testing without physical hardware. Currently implements `generate_sine_wave()`.
 
-2. **`audio_io.py`** *(Planned)*  
-   Responsible for loading, validating, and saving standard uncompressed WAV audio files with strict sample rate and bit-depth validation.
+2. **`audio_io.py`** *(Implemented in Commit 06)*  
+   Responsible for loading, validating, and saving standard uncompressed WAV audio files with strict sample rate and bit-depth validation. Provides `read_wav()` and `write_wav()`.
 
 3. **`recorder.py`** *(Planned)*  
    Responsible for real-time microphone recording and audio stream acquisition using PyAudio when physical microphone hardware is attached.
@@ -153,7 +153,30 @@ fan_audio = generate_fan_noise(
 
 ---
 
-## 5. Acoustic Processing Pipeline
+## 5. Audio Input and Output (`audio_io.py`)
+
+The `acoustic.audio_io` module handles loading, saving, and verifying uncompressed WAV audio files:
+
+- **`write_wav(file_path, audio, sample_rate=44100, subtype='PCM_16')`**: Saves 1D or 2D audio arrays into standard 16-bit PCM or 32-bit float WAV files with automatic directory creation and range normalization.
+- **`read_wav(file_path, target_dtype=np.float64, mono=True)`**: Ingests WAV files, automatically normalizes integer PCM formats (`uint8`, `int16`, `int32`) to normalized floating-point range $[-1.0, 1.0]$, and optionally downmixes multi-channel files to mono.
+
+### 5.1 Usage Example
+
+```python
+from acoustic import read_wav, write_wav, generate_fan_noise
+
+# Generate and save a synthetic fan recording
+audio = generate_fan_noise(base_frequency=120.0, duration=2.0, sample_rate=44100)
+write_wav("data/synthetic/fan_test.wav", audio, sample_rate=44100)
+
+# Load the WAV back into normalized numpy float array
+loaded_audio, sr = read_wav("data/synthetic/fan_test.wav")
+print(f"Loaded {len(loaded_audio)} samples at {sr} Hz")
+```
+
+---
+
+## 6. Acoustic Processing Pipeline
 
 The acoustic signal flow operates according to the following conceptual pipeline:
 
