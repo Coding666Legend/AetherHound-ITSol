@@ -43,8 +43,8 @@ The acoustic package is structured into modular Python components:
 5. **`fft_analysis.py`** *(Implemented in Commit 08)*  
    Responsible for frequency-domain analysis using FFT, calculating magnitude spectra, power spectral density (PSD), and detecting dominant spectral peaks. Provides `compute_fft()`, `detect_spectral_peaks()`, and `analyze_harmonics()`.
 
-6. **`spectrogram.py`** *(Planned)*  
-   Responsible for time-frequency analysis and Short-Time Fourier Transform (STFT) spectrogram computation, supporting both numerical matrix output and visualization.
+6. **`spectrogram.py`** *(Implemented in Commit 09)*  
+   Responsible for time-frequency analysis and Short-Time Fourier Transform (STFT) spectrogram computation, supporting both numerical matrix output and visualization. Provides `compute_spectrogram()` and `export_spectrogram_plot()`.
 
 7. **`features.py`** *(Planned)*  
    Responsible for extracting numerical acoustic features (such as spectral centroid, spectral rolloff, spectral flux, energy variance, and band ratios) for downstream machine learning analysis.
@@ -196,7 +196,16 @@ The `acoustic.fft_analysis` module performs frequency-domain characterization:
 
 ---
 
-## 8. Acoustic Processing Pipeline
+## 8. Spectrogram Generation (`spectrogram.py`)
+
+The `acoustic.spectrogram` module performs time-frequency STFT decomposition and headless visualization:
+
+- **`compute_spectrogram(data, sample_rate=44100, nperseg=1024, noverlap=None, window='hann')`**: Generates discrete 2D time-frequency magnitude matrices using SciPy STFT.
+- **`export_spectrogram_plot(frequencies, times, Sxx, output_path, title='Acoustic Spectrogram', cmap='viridis', db_scale=True)`**: Generates publication-ready static PNG spectrogram plots in headless environments using the Matplotlib `Agg` backend.
+
+---
+
+## 9. Acoustic Processing Pipeline
 
 The acoustic signal flow operates according to the following conceptual pipeline:
 
