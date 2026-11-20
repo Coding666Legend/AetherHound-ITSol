@@ -40,8 +40,8 @@ The acoustic package is structured into modular Python components:
 4. **`filters.py`** *(Implemented in Commit 07)*  
    Responsible for digital signal filtering using SciPy, including zero-phase Butterworth bandpass, lowpass, highpass filtering, and noise suppression techniques. Provides `butter_lowpass_filter()`, `butter_highpass_filter()`, and `butter_bandpass_filter()`.
 
-5. **`fft_analysis.py`** *(Planned)*  
-   Responsible for frequency-domain analysis using FFT, calculating magnitude spectra, power spectral density (PSD), and detecting dominant spectral peaks.
+5. **`fft_analysis.py`** *(Implemented in Commit 08)*  
+   Responsible for frequency-domain analysis using FFT, calculating magnitude spectra, power spectral density (PSD), and detecting dominant spectral peaks. Provides `compute_fft()`, `detect_spectral_peaks()`, and `analyze_harmonics()`.
 
 6. **`spectrogram.py`** *(Planned)*  
    Responsible for time-frequency analysis and Short-Time Fourier Transform (STFT) spectrogram computation, supporting both numerical matrix output and visualization.
@@ -186,7 +186,17 @@ The `acoustic.filters` module provides zero-phase digital filtering using SciPy 
 
 ---
 
-## 7. Acoustic Processing Pipeline
+## 7. FFT Frequency Analysis (`fft_analysis.py`)
+
+The `acoustic.fft_analysis` module performs frequency-domain characterization:
+
+- **`compute_fft(data, sample_rate=44100, window='hann')`**: Computes single-sided discrete Fourier magnitude spectra with windowing correction factors.
+- **`detect_spectral_peaks(frequencies, magnitudes, threshold_rel=0.05, min_distance_hz=10.0, max_peaks=10)`**: Identifies prominent spectral peaks sorted by magnitude.
+- **`analyze_harmonics(base_frequency, peak_frequencies, tolerance_hz=5.0, max_harmonics=5)`**: Matches detected peaks to expected integer harmonic orders ($f_0, 2f_0, 3f_0, \dots$) to characterize fan rotation rates.
+
+---
+
+## 8. Acoustic Processing Pipeline
 
 The acoustic signal flow operates according to the following conceptual pipeline:
 

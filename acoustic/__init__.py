@@ -8,6 +8,11 @@ Ownership: Member 03 – DSP & Acoustic Engineer
 """
 
 from acoustic.audio_io import read_wav, write_wav
+from acoustic.fft_analysis import (
+    analyze_harmonics,
+    compute_fft,
+    detect_spectral_peaks,
+)
 from acoustic.filters import (
     butter_bandpass_filter,
     butter_highpass_filter,
@@ -19,13 +24,16 @@ from acoustic.generator import (
     generate_sine_wave,
 )
 
-__version__ = "0.5.0"
+__version__ = "0.6.0"
 __author__ = "Member 03 – DSP & Acoustic Engineer"
 
 __all__ = [
+    "analyze_harmonics",
     "butter_bandpass_filter",
     "butter_highpass_filter",
     "butter_lowpass_filter",
+    "compute_fft",
+    "detect_spectral_peaks",
     "generate_acoustic_anomaly",
     "generate_fan_noise",
     "generate_sine_wave",
