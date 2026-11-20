@@ -4,7 +4,7 @@ import math
 import unittest
 import numpy as np
 
-from acoustic.generator import generate_fan_noise, generate_sine_wave
+from acoustic.generator import generate_acoustic_anomaly, generate_fan_noise, generate_sine_wave
 
 
 class TestSineWaveGenerator(unittest.TestCase):
@@ -238,5 +238,77 @@ class TestFanNoiseGenerator(unittest.TestCase):
             generate_fan_noise(base_frequency=10000.0, duration=0.1, harmonics=(1.0, 0.5, 0.25))
 
 
+class TestAcousticAnomalyGenerator(unittest.TestCase):
+    """Test suite for generate_acoustic_anomaly function."""
+
+    def test_frequency_shift_anomaly(self):
+        """Verify frequency shift anomaly generation."""
+        sig = generate_acoustic_anomaly(
+            base_frequency=120.0,
+            duration=1.0,
+            sample_rate=44100,
+            anomaly_type="frequency_shift",
+            shift_hz=30.0,
+            pulse_duration=0.5,
+            pulse_interval=1.0,
+            seed=42,
+        )
+        self.assertIsInstance(sig, np.ndarray)
+        self.assertEqual(len(sig), 44100)
+        self.assertLessEqual(np.max(sig), 0.8 + 1e-4)
+
+    def test_pulsed_burst_anomaly(self):
+        """Verify pulsed burst anomaly generation."""
+        sig = generate_acoustic_anomaly(
+            base_frequency=100.0,
+            duration=0.5,
+            anomaly_type="pulsed_burst",
+            shift_hz=50.0,
+            pulse_duration=0.2,
+            pulse_interval=0.5,
+            seed=42,
+        )
+        self.assertEqual(len(sig), int(0.5 * 44100))
+
+    def test_frequency_modulation_anomaly(self):
+        """Verify continuous frequency modulation anomaly."""
+        sig = generate_acoustic_anomaly(
+            base_frequency=200.0,
+            duration=0.5,
+            anomaly_type="frequency_modulation",
+            shift_hz=20.0,
+            pulse_interval=0.25,
+            seed=42,
+        )
+        self.assertEqual(len(sig), int(0.5 * 44100))
+
+    def test_invalid_anomaly_type(self):
+        """Verify unknown anomaly type raises ValueError."""
+        with self.assertRaises(ValueError):
+            generate_acoustic_anomaly(base_frequency=100.0, duration=1.0, anomaly_type="unknown")
+
+    def test_pulse_duration_exceeding_interval(self):
+        """Verify pulse_duration > pulse_interval raises ValueError."""
+        with self.assertRaises(ValueError):
+            generate_acoustic_anomaly(
+                base_frequency=100.0,
+                duration=1.0,
+                pulse_duration=1.5,
+                pulse_interval=1.0,
+            )
+
+    def test_anomaly_exceeding_nyquist(self):
+        """Verify anomaly with high shifted frequency exceeding Nyquist raises ValueError."""
+        with self.assertRaises(ValueError):
+            generate_acoustic_anomaly(
+                base_frequency=20000.0,
+                duration=0.1,
+                sample_rate=44100,
+                shift_hz=5000.0,
+                harmonics=(1.0,),
+            )
+
+
 if __name__ == "__main__":
     unittest.main()
+

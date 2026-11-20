@@ -100,7 +100,32 @@ $$y(t) = \sum_{k=1}^{M} w_k \cdot \sin(2\pi \cdot k f_0 \cdot t) + \alpha \cdot 
 | `seed` | `Optional[int]` | `None` | Random seed for deterministic reproducibility |
 | `dtype` | `Any` | `np.float64` | Output floating-point NumPy data type |
 
-### 4.3 Usage Example
+### 4.3 `generate_acoustic_anomaly()`
+
+Simulates covert acoustic communication channels originating from compromised computers (e.g., Fansmitter-style malware modulating fan speeds to exfiltrate data).
+
+#### Supported Anomaly Types
+- **`frequency_shift`**: Frequency Shift Keying (FSK) where fan rotational frequency shifts by $\Delta f$ during active pulses.
+- **`pulsed_burst`**: Periodic burst bursts of anomalous acoustic energy (OOK / amplitude bursts).
+- **`frequency_modulation`**: Continuous sinusoidal RPM frequency modulation.
+
+#### Parameters
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `base_frequency` | `float` | *Required* | Normal baseline fan frequency in Hz ($f_0 > 0$) |
+| `duration` | `float` | *Required* | Total signal length in seconds |
+| `sample_rate` | `int` | `44100` | Sampling rate in Hz |
+| `anomaly_type` | `str` | `"frequency_shift"` | Type of covert anomaly (`frequency_shift`, `pulsed_burst`, `frequency_modulation`) |
+| `shift_hz` | `float` | `40.0` | Frequency deviation during anomaly pulse |
+| `pulse_duration` | `float` | `0.5` | Duration of each pulse in seconds |
+| `pulse_interval` | `float` | `1.0` | Repetition period between pulses |
+| `harmonics` | `Sequence[float]` | `(1.0, 0.5, 0.25)` | Harmonic overtone amplitude weights |
+| `amplitude` | `float` | `0.8` | Peak normalized output amplitude |
+| `noise_level` | `float` | `0.05` | Background turbulence noise level |
+| `seed` | `Optional[int]` | `None` | Deterministic random seed |
+
+### 4.4 Usage Example
 
 ```python
 from acoustic import generate_fan_noise, generate_sine_wave

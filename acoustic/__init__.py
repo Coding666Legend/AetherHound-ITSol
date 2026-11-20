@@ -7,12 +7,17 @@ extraction for detecting covert channels in air-gapped environments.
 Ownership: Member 03 – DSP & Acoustic Engineer
 """
 
-from acoustic.generator import generate_fan_noise, generate_sine_wave
+from acoustic.generator import (
+    generate_acoustic_anomaly,
+    generate_fan_noise,
+    generate_sine_wave,
+)
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 __author__ = "Member 03 – DSP & Acoustic Engineer"
 
 __all__ = [
+    "generate_acoustic_anomaly",
     "generate_fan_noise",
     "generate_sine_wave",
 ]
