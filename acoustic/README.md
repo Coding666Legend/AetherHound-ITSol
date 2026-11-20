@@ -46,8 +46,8 @@ The acoustic package is structured into modular Python components:
 6. **`spectrogram.py`** *(Implemented in Commit 09)*  
    Responsible for time-frequency analysis and Short-Time Fourier Transform (STFT) spectrogram computation, supporting both numerical matrix output and visualization. Provides `compute_spectrogram()` and `export_spectrogram_plot()`.
 
-7. **`features.py`** *(Planned)*  
-   Responsible for extracting numerical acoustic features (such as spectral centroid, spectral rolloff, spectral flux, energy variance, and band ratios) for downstream machine learning analysis.
+7. **`features.py`** *(Implemented in Commit 10)*  
+   Responsible for extracting numerical acoustic features (such as RMS energy, spectral centroid, spectral bandwidth, zero-crossing rate, dominant frequency, and spectral rolloff) and bundling them into normalized `FeatureFrame` instances for downstream machine learning analysis. Provides `extract_acoustic_features()` and `create_feature_frame()`.
 
 ---
 
@@ -205,7 +205,22 @@ The `acoustic.spectrogram` module performs time-frequency STFT decomposition and
 
 ---
 
-## 9. Acoustic Processing Pipeline
+## 9. Feature Extraction & ML Data Contracts (`features.py`)
+
+The `acoustic.features` module computes standard numerical descriptors and interfaces with Member 04's anomaly detection pipeline:
+
+- **Features Extracted:**
+  - `rms_energy`: Root Mean Square of time-domain signal power.
+  - `zero_crossing_rate`: Rate of sign-changes measuring signal noisiness / frequency center.
+  - `spectral_centroid`: Center of spectral mass in Hz.
+  - `spectral_bandwidth`: Spectral spread / variance around the centroid in Hz.
+  - `dominant_frequency`: Frequency bin exhibiting maximum spectral amplitude in Hz.
+  - `spectral_rolloff`: Frequency cutoff below which 85% of cumulative spectral energy is concentrated.
+- **`create_feature_frame(data, sample_rate=44100, source_id='acoustic_default', timestamp=None)`**: Creates a validated `FeatureFrame` complying with the project integration contract in `docs/module_interfaces.md`.
+
+---
+
+## 10. Acoustic Processing Pipeline
 
 The acoustic signal flow operates according to the following conceptual pipeline:
 
@@ -260,7 +275,7 @@ The acoustic signal flow operates according to the following conceptual pipeline
 
 ---
 
-## 6. Technology Stack
+## 11. Technology Stack
 
 The module relies strictly on standard local scientific Python libraries:
 
@@ -273,7 +288,7 @@ The module relies strictly on standard local scientific Python libraries:
 
 ---
 
-## 7. Offline-First Architecture
+## 12. Offline-First Architecture
 
 AetherHound is designed for high-security, air-gapped environments. Consequently, the acoustic DSP module adheres strictly to an offline-first architecture:
 
@@ -283,7 +298,7 @@ AetherHound is designed for high-security, air-gapped environments. Consequently
 
 ---
 
-## 8. Future Integration
+## 13. Future Integration
 
 The acoustic DSP package is designed with clear modular boundaries:
 
@@ -293,9 +308,9 @@ The acoustic DSP package is designed with clear modular boundaries:
 
 ---
 
-## 9. Dependencies & Linux Installation
+## 14. Dependencies & Linux Installation
 
-### 9.1 Dependency Classification
+### 14.1 Dependency Classification
 
 To maintain a clean offline-first footprint, dependencies are divided into **Required** (core DSP, synthetic signal generation, analysis, visualization) and **Optional** (hardware-dependent real-time microphone capture):
 
@@ -309,11 +324,11 @@ To maintain a clean offline-first footprint, dependencies are divided into **Req
 
 > **Note on Hardware Independence:** Synthetic audio generation, digital filtering, FFT, spectrogram calculation, and feature extraction operate completely without `pyaudio` or physical microphone hardware.
 
-### 9.2 Repository Dependency Strategy
+### 14.2 Repository Dependency Strategy
 
 To avoid duplicate configuration files and conflicting version constraints across team members, all project dependencies are managed centrally in the root [`requirements.txt`](../requirements.txt).
 
-### 9.3 Linux Installation Guide
+### 14.3 Linux Installation Guide
 
 #### Option A: Python Virtual Environment (Recommended)
 Modern Linux distributions (Debian 12+, Ubuntu 24.04+, Arch Linux) enforce [PEP 668](https://peps.python.org/pep-0668/) externally managed environments. A virtual environment is the recommended installation path:
@@ -356,7 +371,7 @@ If compiling `pyaudio` from source or linking against native audio libraries, in
   sudo dnf install libsndfile portaudio-devel
   ```
 
-### 9.4 Offline / Air-Gapped Deployment
+### 14.4 Offline / Air-Gapped Deployment
 For air-gapped computers with no internet access:
 1. On an internet-connected staging machine, download pre-built wheels:
    ```bash
@@ -367,5 +382,6 @@ For air-gapped computers with no internet access:
    ```bash
    pip install --no-index --find-links=./vendor/ -r requirements.txt
    ```
+
 
 
