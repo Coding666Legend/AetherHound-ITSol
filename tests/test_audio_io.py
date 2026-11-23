@@ -75,19 +75,58 @@ class TestAudioIO(unittest.TestCase):
 
         # Invalid audio array
         with self.assertRaises(ValueError):
-            write_wav(wav_file, np.array([]), sample_rate=44100)
+            write_wav(wav_file, np.array([], dtype=np.float64), sample_rate=44100)
 
         # Audio containing NaN
         with self.assertRaises(ValueError):
-            write_wav(wav_file, np.array([0.1, np.nan, 0.5]), sample_rate=44100)
+            write_wav(wav_file, np.array([0.1, np.nan, 0.5], dtype=np.float64), sample_rate=44100)
 
         # Invalid sample rate
         with self.assertRaises(ValueError):
-            write_wav(wav_file, np.array([0.1, 0.2]), sample_rate=0)
+            write_wav(wav_file, np.array([0.1, 0.2], dtype=np.float64), sample_rate=0)
+
+        # Boolean sample rate rejection
+        with self.assertRaises(TypeError):
+            write_wav(wav_file, np.array([0.1, 0.2], dtype=np.float64), sample_rate=True)
+
+        # Non-floating audio array rejection
+        with self.assertRaises(ValueError):
+            write_wav(wav_file, np.array([1, 2, 3], dtype=np.int32), sample_rate=44100)
+
+        # 3D audio array rejection
+        with self.assertRaises(ValueError):
+            write_wav(wav_file, np.zeros((10, 2, 2), dtype=np.float64), sample_rate=44100)
+
+        # Non-array audio argument
+        with self.assertRaises(TypeError):
+            write_wav(wav_file, [0.1, 0.2], sample_rate=44100)  # type: ignore
+
+        # Empty file path
+        with self.assertRaises(ValueError):
+            write_wav("   ", np.array([0.1, 0.2], dtype=np.float64), sample_rate=44100)
+        with self.assertRaises(ValueError):
+            read_wav("   ")
+
+        # Invalid file path type
+        with self.assertRaises(TypeError):
+            write_wav(12345, np.array([0.1, 0.2], dtype=np.float64))  # type: ignore
+        with self.assertRaises(TypeError):
+            read_wav(12345)  # type: ignore
 
         # Unsupported subtype
         with self.assertRaises(ValueError):
-            write_wav(wav_file, np.array([0.1, 0.2]), sample_rate=44100, subtype="MP3")
+            write_wav(wav_file, np.array([0.1, 0.2], dtype=np.float64), sample_rate=44100, subtype="MP3")
+
+        # Write valid file to test invalid read parameters
+        write_wav(wav_file, np.array([0.1, 0.2], dtype=np.float64), sample_rate=44100)
+
+        # Non-floating target_dtype in read_wav
+        with self.assertRaises(ValueError):
+            read_wav(wav_file, target_dtype=np.int32)
+
+        # Completely invalid target_dtype
+        with self.assertRaises(TypeError):
+            read_wav(wav_file, target_dtype="not_a_valid_dtype_xyz")
 
 
 if __name__ == "__main__":

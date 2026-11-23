@@ -27,8 +27,31 @@ class FeatureFrame:
     feature_names: List[str] = field(default_factory=list)
 
 
+def _validate_spectral_vectors(frequencies: np.ndarray, magnitudes: np.ndarray) -> None:
+    """Validate spectral frequencies and magnitude arrays."""
+    if not isinstance(frequencies, np.ndarray) or not isinstance(magnitudes, np.ndarray):
+        raise TypeError("frequencies and magnitudes must be NumPy ndarrays.")
+
+    if frequencies.ndim != 1 or magnitudes.ndim != 1:
+        raise ValueError("frequencies and magnitudes must be 1D arrays.")
+
+    if len(frequencies) != len(magnitudes):
+        raise ValueError(
+            f"frequencies and magnitudes must have matching lengths, got {len(frequencies)} and {len(magnitudes)}."
+        )
+
+    if not np.all(np.isfinite(frequencies)) or not np.all(np.isfinite(magnitudes)):
+        raise ValueError("frequencies and magnitudes must contain only finite numbers.")
+
+
 def compute_rms_energy(data: np.ndarray) -> float:
     """Compute the Root Mean Square (RMS) energy of a time-domain signal."""
+    if not isinstance(data, np.ndarray):
+        raise TypeError(f"data must be a NumPy ndarray, got {type(data).__name__}.")
+    if not np.issubdtype(data.dtype, np.floating):
+        raise ValueError(f"data must have a floating-point dtype, got {data.dtype}.")
+    if not np.all(np.isfinite(data)):
+        raise ValueError("data contains non-finite values.")
     if data.size == 0:
         return 0.0
     return float(np.sqrt(np.mean(data**2)))
@@ -36,6 +59,12 @@ def compute_rms_energy(data: np.ndarray) -> float:
 
 def compute_zero_crossing_rate(data: np.ndarray) -> float:
     """Compute the Zero-Crossing Rate (ZCR) of a time-domain signal."""
+    if not isinstance(data, np.ndarray):
+        raise TypeError(f"data must be a NumPy ndarray, got {type(data).__name__}.")
+    if not np.issubdtype(data.dtype, np.floating):
+        raise ValueError(f"data must have a floating-point dtype, got {data.dtype}.")
+    if not np.all(np.isfinite(data)):
+        raise ValueError("data contains non-finite values.")
     if len(data) < 2:
         return 0.0
     # Sign differences between adjacent samples
@@ -48,6 +77,7 @@ def compute_zero_crossing_rate(data: np.ndarray) -> float:
 
 def compute_spectral_centroid(frequencies: np.ndarray, magnitudes: np.ndarray) -> float:
     """Compute the Spectral Centroid (center of spectral mass) in Hz."""
+    _validate_spectral_vectors(frequencies, magnitudes)
     sum_mag = np.sum(magnitudes)
     if sum_mag == 0.0:
         return 0.0
@@ -61,6 +91,7 @@ def compute_spectral_bandwidth(
     centroid: Optional[float] = None,
 ) -> float:
     """Compute the Spectral Bandwidth (spectral spread / variance around centroid) in Hz."""
+    _validate_spectral_vectors(frequencies, magnitudes)
     sum_mag = np.sum(magnitudes)
     if sum_mag == 0.0:
         return 0.0
@@ -72,6 +103,7 @@ def compute_spectral_bandwidth(
 
 def compute_dominant_frequency(frequencies: np.ndarray, magnitudes: np.ndarray) -> float:
     """Determine the Dominant Frequency (frequency bin with peak spectral magnitude) in Hz."""
+    _validate_spectral_vectors(frequencies, magnitudes)
     if len(magnitudes) == 0 or np.max(magnitudes) == 0.0:
         return 0.0
     peak_idx = int(np.argmax(magnitudes))
@@ -84,6 +116,14 @@ def compute_spectral_rolloff(
     roll_percent: float = 0.85,
 ) -> float:
     """Compute the Spectral Rolloff frequency in Hz below which roll_percent energy lies."""
+    _validate_spectral_vectors(frequencies, magnitudes)
+
+    if isinstance(roll_percent, bool) or not isinstance(roll_percent, (int, float)):
+        raise TypeError(f"roll_percent must be numeric, got {type(roll_percent).__name__}.")
+
+    if not math.isfinite(roll_percent) or roll_percent <= 0.0 or roll_percent > 1.0:
+        raise ValueError(f"roll_percent must be in range (0.0, 1.0], got {roll_percent}.")
+
     sum_mag = np.sum(magnitudes)
     if sum_mag == 0.0:
         return 0.0
@@ -103,7 +143,7 @@ def extract_acoustic_features(
     Parameters
     ----------
     data : np.ndarray
-        1D array of audio samples.
+        1D floating-point array of audio samples.
     sample_rate : int, optional
         Sampling frequency in Hz. Default 44100.
 
@@ -117,10 +157,13 @@ def extract_acoustic_features(
     TypeError
         If inputs are of invalid types.
     ValueError
-        If data is empty or contains non-finite values.
+        If data is empty, non-finite, not floating-point, or sample_rate <= 0.
     """
     if not isinstance(data, np.ndarray):
         raise TypeError(f"data must be a NumPy ndarray, got {type(data).__name__}.")
+
+    if not np.issubdtype(data.dtype, np.floating):
+        raise ValueError(f"data must have a floating-point dtype, got {data.dtype}.")
 
     if data.ndim != 1:
         raise ValueError(f"data must be a 1D array, got {data.ndim}D.")
@@ -169,21 +212,30 @@ def create_feature_frame(
     Parameters
     ----------
     data : np.ndarray
-        1D array of audio samples.
+        1D floating-point array of audio samples.
     sample_rate : int, optional
         Sampling frequency in Hz. Default 44100.
     source_id : str, optional
-        Stable identifier for source capture device or simulation model.
+        Stable non-empty identifier for source capture device or simulation model.
     timestamp : Optional[datetime], optional
-        Timestamp for capture; defaults to current UTC time.
+        Timestamp for capture; defaults to current UTC time. Must be timezone-aware if passed.
 
     Returns
     -------
     FeatureFrame
         Standardized container with modality 'acoustic', 1D feature array, and feature names.
     """
+    if not isinstance(source_id, str) or len(source_id.strip()) == 0:
+        raise ValueError(f"source_id must be a non-empty string, got '{source_id}'.")
+
     if timestamp is None:
         timestamp = datetime.now(timezone.utc)
+    else:
+        if not isinstance(timestamp, datetime):
+            raise TypeError(f"timestamp must be a datetime object, got {type(timestamp).__name__}.")
+        if timestamp.tzinfo is None:
+            # Attach UTC timezone if naive datetime is passed
+            timestamp = timestamp.replace(tzinfo=timezone.utc)
 
     feature_dict = extract_acoustic_features(data, sample_rate=sample_rate)
 
@@ -193,7 +245,7 @@ def create_feature_frame(
     return FeatureFrame(
         modality="acoustic",
         timestamp=timestamp,
-        source_id=source_id,
+        source_id=source_id.strip(),
         features=feature_values,
         feature_names=feature_names,
     )

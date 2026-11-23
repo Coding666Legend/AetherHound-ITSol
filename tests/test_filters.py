@@ -25,12 +25,10 @@ class TestFilters(unittest.TestCase):
 
     def test_lowpass_filter_frequency_response(self):
         """Verify low-pass filter attenuates high frequencies and preserves low frequency."""
-        # Cutoff at 300 Hz: keeps 100 Hz, eliminates 1000 Hz and 8000 Hz
         filtered = butter_lowpass_filter(self.composite, cutoff_freq=300.0, sample_rate=self.sr, order=4)
         self.assertEqual(filtered.shape, self.composite.shape)
         self.assertEqual(filtered.dtype, self.composite.dtype)
 
-        # Measure energy in frequency bins via FFT
         fft_vals = np.abs(np.fft.rfft(filtered))
         fft_freqs = np.fft.rfftfreq(len(filtered), d=1.0 / self.sr)
 
@@ -38,13 +36,11 @@ class TestFilters(unittest.TestCase):
         idx_1000 = np.argmin(np.abs(fft_freqs - 1000.0))
         idx_8000 = np.argmin(np.abs(fft_freqs - 8000.0))
 
-        # 100 Hz should have massive energy compared to 1000 Hz and 8000 Hz
         self.assertGreater(fft_vals[idx_100], 100.0 * fft_vals[idx_1000])
         self.assertGreater(fft_vals[idx_100], 1000.0 * fft_vals[idx_8000])
 
     def test_highpass_filter_frequency_response(self):
         """Verify high-pass filter attenuates low frequencies and preserves high frequency."""
-        # Cutoff at 4000 Hz: keeps 8000 Hz, eliminates 100 Hz and 1000 Hz
         filtered = butter_highpass_filter(self.composite, cutoff_freq=4000.0, sample_rate=self.sr, order=4)
 
         fft_vals = np.abs(np.fft.rfft(filtered))
@@ -57,7 +53,6 @@ class TestFilters(unittest.TestCase):
 
     def test_bandpass_filter_frequency_response(self):
         """Verify band-pass filter isolates middle frequency."""
-        # Passband 800 Hz to 1200 Hz: isolates 1000 Hz, eliminates 100 Hz and 8000 Hz
         filtered = butter_bandpass_filter(
             self.composite, low_cutoff=800.0, high_cutoff=1200.0, sample_rate=self.sr, order=4
         )
@@ -81,6 +76,45 @@ class TestFilters(unittest.TestCase):
         peak_filt = np.argmax(filtered[:200])
         self.assertEqual(peak_orig, peak_filt)
 
+    def test_multichannel_2d_filtering(self):
+        """Verify filtering functions correctly process 2D multi-channel signals."""
+        stereo = np.column_stack([self.sig_low, self.sig_high])
+        filtered_stereo = butter_lowpass_filter(stereo, cutoff_freq=500.0, sample_rate=self.sr)
+
+        self.assertEqual(filtered_stereo.shape, stereo.shape)
+        # Channel 0 (100 Hz) should maintain energy; Channel 1 (8000 Hz) should be attenuated
+        rms_ch0 = np.sqrt(np.mean(filtered_stereo[:, 0] ** 2))
+        rms_ch1 = np.sqrt(np.mean(filtered_stereo[:, 1] ** 2))
+        self.assertGreater(rms_ch0, 100.0 * rms_ch1)
+
+    def test_order_boundaries(self):
+        """Verify minimum order 1 and maximum order 12 boundaries."""
+        # Order 1 (valid minimum)
+        f1 = butter_lowpass_filter(self.composite, cutoff_freq=1000.0, sample_rate=self.sr, order=1)
+        self.assertEqual(f1.shape, self.composite.shape)
+
+        # Order 12 (valid maximum)
+        f12 = butter_lowpass_filter(self.composite, cutoff_freq=1000.0, sample_rate=self.sr, order=12)
+        self.assertEqual(f12.shape, self.composite.shape)
+
+        # Order 13 (unstable, should be rejected)
+        with self.assertRaises(ValueError):
+            butter_lowpass_filter(self.composite, cutoff_freq=1000.0, sample_rate=self.sr, order=13)
+
+        # Order 0 (rejected)
+        with self.assertRaises(ValueError):
+            butter_lowpass_filter(self.composite, cutoff_freq=1000.0, sample_rate=self.sr, order=0)
+
+    def test_non_floating_dtype_rejection(self):
+        """Verify non-floating NumPy arrays are rejected."""
+        int_data = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10] * 5, dtype=np.int16)
+        with self.assertRaises(ValueError):
+            butter_lowpass_filter(int_data, cutoff_freq=500.0, sample_rate=self.sr)
+
+        bool_data = np.ones(50, dtype=bool)
+        with self.assertRaises(ValueError):
+            butter_lowpass_filter(bool_data, cutoff_freq=500.0, sample_rate=self.sr)
+
     def test_invalid_filter_parameters(self):
         """Verify input validation and edge cases."""
         # Cutoff >= Nyquist
@@ -98,6 +132,22 @@ class TestFilters(unittest.TestCase):
         # Data too short
         with self.assertRaises(ValueError):
             butter_lowpass_filter(np.array([1.0, 2.0]), cutoff_freq=500.0, sample_rate=self.sr, order=4)
+
+        # 3D array
+        with self.assertRaises(ValueError):
+            butter_lowpass_filter(np.ones((100, 2, 2)), cutoff_freq=500.0, sample_rate=self.sr)
+
+        # Non-finite values
+        with self.assertRaises(ValueError):
+            butter_lowpass_filter(np.array([1.0, np.nan, 3.0] * 20), cutoff_freq=500.0, sample_rate=self.sr)
+
+        # Boolean parameters
+        with self.assertRaises(TypeError):
+            butter_lowpass_filter(self.composite, cutoff_freq=500.0, sample_rate=True)
+        with self.assertRaises(TypeError):
+            butter_lowpass_filter(self.composite, cutoff_freq=True, sample_rate=self.sr)
+        with self.assertRaises(TypeError):
+            butter_lowpass_filter(self.composite, cutoff_freq=500.0, order=True)
 
 
 if __name__ == "__main__":

@@ -31,7 +31,7 @@ def compute_spectrogram(
     Parameters
     ----------
     data : np.ndarray
-        1D array of audio samples.
+        1D floating-point array of audio samples.
     sample_rate : int, optional
         Sampling frequency in Hz. Default 44100.
     nperseg : int, optional
@@ -58,6 +58,9 @@ def compute_spectrogram(
     """
     if not isinstance(data, np.ndarray):
         raise TypeError(f"data must be a NumPy ndarray, got {type(data).__name__}.")
+
+    if not np.issubdtype(data.dtype, np.floating):
+        raise ValueError(f"data must have a floating-point dtype, got {data.dtype}.")
 
     if data.ndim != 1:
         raise ValueError(f"data must be a 1D array, got {data.ndim}D.")
@@ -142,8 +145,14 @@ def export_spectrogram_plot(
     path_obj = Path(output_path)
     path_obj.parent.mkdir(parents=True, exist_ok=True)
 
-    if Sxx.ndim != 2:
-        raise ValueError(f"Sxx must be a 2D matrix, got shape {Sxx.shape}.")
+    if not isinstance(frequencies, np.ndarray) or not isinstance(times, np.ndarray) or not isinstance(Sxx, np.ndarray):
+        raise TypeError("frequencies, times, and Sxx must be NumPy ndarrays.")
+
+    if frequencies.ndim != 1 or times.ndim != 1 or Sxx.ndim != 2:
+        raise ValueError("frequencies and times must be 1D, and Sxx must be a 2D matrix.")
+
+    if not np.all(np.isfinite(frequencies)) or not np.all(np.isfinite(times)) or not np.all(np.isfinite(Sxx)):
+        raise ValueError("Spectrogram data contains non-finite values (NaN or Inf).")
 
     if Sxx.shape[0] != len(frequencies) or Sxx.shape[1] != len(times):
         raise ValueError(
@@ -164,7 +173,7 @@ def export_spectrogram_plot(
     mesh = ax.pcolormesh(times, frequencies, display_data, shading="auto", cmap=cmap)
     fig.colorbar(mesh, ax=ax, label=cb_label)
 
-    ax.set_title(title)
+    ax.set_title(str(title))
     ax.set_xlabel("Time (seconds)")
     ax.set_ylabel("Frequency (Hz)")
     ax.set_ylim([0, frequencies[-1]])

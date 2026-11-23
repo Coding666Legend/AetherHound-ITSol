@@ -78,10 +78,78 @@ class TestFFTAnalysis(unittest.TestCase):
         self.assertAlmostEqual(harm_map[3], 301.0, delta=0.5)
         self.assertIsNone(harm_map[4])  # 4th harmonic (400 Hz) absent
 
+    def test_dc_constant_signal_spectrum(self):
+        """Verify constant DC signal energy is concentrated in DC bin (0 Hz)."""
+        dc_signal = np.full(1000, 0.5, dtype=np.float64)
+        freqs, mags = compute_fft(dc_signal, sample_rate=1000, window=None)
+        peak_idx = np.argmax(mags)
+        self.assertEqual(freqs[peak_idx], 0.0)
+        self.assertAlmostEqual(mags[0], 0.5, delta=0.01)
+
+    def test_non_floating_dtype_rejection(self):
+        """Verify integer and boolean arrays are rejected in compute_fft."""
+        with self.assertRaises(ValueError):
+            compute_fft(np.array([1, 2, 3, 4], dtype=np.int32), sample_rate=self.sr)
+        with self.assertRaises(ValueError):
+            compute_fft(np.array([True, False, True], dtype=bool), sample_rate=self.sr)
+
+    def test_detect_spectral_peaks_validation(self):
+        """Verify boundary and type validation in detect_spectral_peaks."""
+        freqs = np.linspace(0, 1000, 100)
+        mags = np.sin(freqs) ** 2
+
+        # threshold_rel out of range [0, 1]
+        with self.assertRaises(ValueError):
+            detect_spectral_peaks(freqs, mags, threshold_rel=-0.1)
+        with self.assertRaises(ValueError):
+            detect_spectral_peaks(freqs, mags, threshold_rel=1.5)
+
+        # min_distance_hz <= 0
+        with self.assertRaises(ValueError):
+            detect_spectral_peaks(freqs, mags, min_distance_hz=0.0)
+
+        # max_peaks < 1
+        with self.assertRaises(ValueError):
+            detect_spectral_peaks(freqs, mags, max_peaks=0)
+
+        # Mismatched array lengths
+        with self.assertRaises(ValueError):
+            detect_spectral_peaks(freqs[:50], mags)
+
+        # 2D arrays
+        with self.assertRaises(ValueError):
+            detect_spectral_peaks(freqs.reshape(10, 10), mags.reshape(10, 10))
+
+    def test_analyze_harmonics_validation(self):
+        """Verify boundary and type validation in analyze_harmonics."""
+        peaks = [100.0, 200.0]
+
+        # base_frequency <= 0
+        with self.assertRaises(ValueError):
+            analyze_harmonics(0.0, peaks)
+        with self.assertRaises(ValueError):
+            analyze_harmonics(-100.0, peaks)
+
+        # tolerance_hz <= 0
+        with self.assertRaises(ValueError):
+            analyze_harmonics(100.0, peaks, tolerance_hz=0.0)
+
+        # max_harmonics < 1
+        with self.assertRaises(ValueError):
+            analyze_harmonics(100.0, peaks, max_harmonics=0)
+
+        # Boolean parameters
+        with self.assertRaises(TypeError):
+            analyze_harmonics(True, peaks)
+        with self.assertRaises(TypeError):
+            analyze_harmonics(100.0, peaks, tolerance_hz=True)
+        with self.assertRaises(TypeError):
+            analyze_harmonics(100.0, peaks, max_harmonics=True)
+
     def test_invalid_parameters(self):
         """Verify error handling on invalid inputs."""
         with self.assertRaises(ValueError):
-            compute_fft(np.array([]), sample_rate=self.sr)
+            compute_fft(np.array([], dtype=np.float64), sample_rate=self.sr)
         with self.assertRaises(ValueError):
             compute_fft(np.array([[1.0], [2.0]]), sample_rate=self.sr)
         with self.assertRaises(ValueError):

@@ -22,6 +22,14 @@ def _validate_filter_inputs(
     if not isinstance(data, np.ndarray):
         raise TypeError(f"data must be a NumPy ndarray, got {type(data).__name__}.")
 
+    if not np.issubdtype(data.dtype, np.floating):
+        raise ValueError(
+            f"data array must have a floating-point dtype (e.g. float32, float64), got {data.dtype}."
+        )
+
+    if data.ndim not in (1, 2):
+        raise ValueError(f"data array must be 1D or 2D, got {data.ndim}D.")
+
     if data.size == 0:
         raise ValueError("data array must not be empty.")
 
@@ -37,8 +45,8 @@ def _validate_filter_inputs(
     if isinstance(order, bool) or not isinstance(order, (int, np.integer)):
         raise TypeError(f"order must be an integer, got {type(order).__name__}.")
 
-    if order < 1:
-        raise ValueError(f"order must be at least 1, got {order}.")
+    if order < 1 or order > 12:
+        raise ValueError(f"order must be between 1 and 12 for numerical stability, got {order}.")
 
     nyquist = float(sample_rate) / 2.0
     return data, int(sample_rate), int(order), nyquist
@@ -55,13 +63,13 @@ def butter_lowpass_filter(
     Parameters
     ----------
     data : np.ndarray
-        Input audio array (1D or 2D).
+        Input audio array (1D or 2D floating-point).
     cutoff_freq : float
         Cutoff frequency in Hz. Must be strictly between 0 and Nyquist (sample_rate / 2).
     sample_rate : int, optional
         Sampling frequency in Hz (default 44100).
     order : int, optional
-        Filter order (default 4).
+        Filter order in range [1, 12] (default 4).
 
     Returns
     -------
@@ -106,13 +114,13 @@ def butter_highpass_filter(
     Parameters
     ----------
     data : np.ndarray
-        Input audio array (1D or 2D).
+        Input audio array (1D or 2D floating-point).
     cutoff_freq : float
         Cutoff frequency in Hz. Must be strictly between 0 and Nyquist (sample_rate / 2).
     sample_rate : int, optional
         Sampling frequency in Hz (default 44100).
     order : int, optional
-        Filter order (default 4).
+        Filter order in range [1, 12] (default 4).
 
     Returns
     -------
@@ -157,7 +165,7 @@ def butter_bandpass_filter(
     Parameters
     ----------
     data : np.ndarray
-        Input audio array (1D or 2D).
+        Input audio array (1D or 2D floating-point).
     low_cutoff : float
         Lower cutoff frequency in Hz. Must be > 0 and < high_cutoff.
     high_cutoff : float
@@ -165,7 +173,7 @@ def butter_bandpass_filter(
     sample_rate : int, optional
         Sampling frequency in Hz (default 44100).
     order : int, optional
-        Filter order (default 4).
+        Filter order in range [1, 12] (default 4).
 
     Returns
     -------

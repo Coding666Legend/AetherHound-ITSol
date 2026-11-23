@@ -23,7 +23,7 @@ def compute_fft(
     Parameters
     ----------
     data : np.ndarray
-        1D array of audio samples.
+        1D floating-point array of audio samples.
     sample_rate : int, optional
         Sampling frequency in Hz. Default is 44100.
     window : Optional[str], optional
@@ -42,10 +42,13 @@ def compute_fft(
     TypeError
         If inputs have invalid types.
     ValueError
-        If data is empty, non-finite, or sample_rate <= 0.
+        If data is empty, non-finite, not floating-point, or sample_rate <= 0.
     """
     if not isinstance(data, np.ndarray):
         raise TypeError(f"data must be a NumPy ndarray, got {type(data).__name__}.")
+
+    if not np.issubdtype(data.dtype, np.floating):
+        raise ValueError(f"data must have a floating-point dtype, got {data.dtype}.")
 
     if data.ndim != 1:
         raise ValueError(f"data must be a 1D array, got {data.ndim}D.")
@@ -120,8 +123,17 @@ def detect_spectral_peaks(
     if not isinstance(frequencies, np.ndarray) or not isinstance(magnitudes, np.ndarray):
         raise TypeError("frequencies and magnitudes must be NumPy arrays.")
 
+    if frequencies.ndim != 1 or magnitudes.ndim != 1:
+        raise ValueError("frequencies and magnitudes must be 1D arrays.")
+
     if len(frequencies) != len(magnitudes):
-        raise ValueError("frequencies and magnitudes arrays must have identical length.")
+        raise ValueError(
+            f"frequencies and magnitudes arrays must have identical length, "
+            f"got {len(frequencies)} and {len(magnitudes)}."
+        )
+
+    if not np.all(np.isfinite(frequencies)) or not np.all(np.isfinite(magnitudes)):
+        raise ValueError("frequencies and magnitudes must contain only finite numbers.")
 
     if len(magnitudes) == 0:
         return []
@@ -129,8 +141,20 @@ def detect_spectral_peaks(
     if isinstance(threshold_rel, bool) or not isinstance(threshold_rel, (int, float)):
         raise TypeError(f"threshold_rel must be numeric, got {type(threshold_rel).__name__}.")
 
-    if not math.isfinite(threshold_rel) or threshold_rel < 0.0:
-        raise ValueError("threshold_rel must be a non-negative finite number.")
+    if not math.isfinite(threshold_rel) or threshold_rel < 0.0 or threshold_rel > 1.0:
+        raise ValueError(f"threshold_rel must be in range [0.0, 1.0], got {threshold_rel}.")
+
+    if isinstance(min_distance_hz, bool) or not isinstance(min_distance_hz, (int, float)):
+        raise TypeError(f"min_distance_hz must be numeric, got {type(min_distance_hz).__name__}.")
+
+    if not math.isfinite(min_distance_hz) or min_distance_hz <= 0.0:
+        raise ValueError(f"min_distance_hz must be a positive finite number, got {min_distance_hz}.")
+
+    if isinstance(max_peaks, bool) or not isinstance(max_peaks, (int, np.integer)):
+        raise TypeError(f"max_peaks must be an integer, got {type(max_peaks).__name__}.")
+
+    if max_peaks < 1:
+        raise ValueError(f"max_peaks must be at least 1, got {max_peaks}.")
 
     max_mag = np.max(magnitudes)
     if max_mag == 0.0:
@@ -175,8 +199,23 @@ def analyze_harmonics(
     Dict[int, Optional[float]]
         Dictionary mapping harmonic order k -> matched frequency or None if not found.
     """
-    if base_frequency <= 0:
-        raise ValueError(f"base_frequency must be positive, got {base_frequency} Hz.")
+    if isinstance(base_frequency, bool) or not isinstance(base_frequency, (int, float)):
+        raise TypeError(f"base_frequency must be numeric, got {type(base_frequency).__name__}.")
+
+    if not math.isfinite(base_frequency) or base_frequency <= 0:
+        raise ValueError(f"base_frequency must be a positive finite number, got {base_frequency} Hz.")
+
+    if isinstance(tolerance_hz, bool) or not isinstance(tolerance_hz, (int, float)):
+        raise TypeError(f"tolerance_hz must be numeric, got {type(tolerance_hz).__name__}.")
+
+    if not math.isfinite(tolerance_hz) or tolerance_hz <= 0:
+        raise ValueError(f"tolerance_hz must be a positive finite number, got {tolerance_hz} Hz.")
+
+    if isinstance(max_harmonics, bool) or not isinstance(max_harmonics, (int, np.integer)):
+        raise TypeError(f"max_harmonics must be an integer, got {type(max_harmonics).__name__}.")
+
+    if max_harmonics < 1:
+        raise ValueError(f"max_harmonics must be at least 1, got {max_harmonics}.")
 
     results: Dict[int, Optional[float]] = {}
     for order in range(1, max_harmonics + 1):
@@ -185,10 +224,12 @@ def analyze_harmonics(
         min_dev = float("inf")
 
         for f in peak_frequencies:
+            if not isinstance(f, (int, float)) or not math.isfinite(f):
+                continue
             dev = abs(f - target_f)
             if dev <= tolerance_hz and dev < min_dev:
                 min_dev = dev
-                best_match = f
+                best_match = float(f)
 
         results[order] = best_match
 

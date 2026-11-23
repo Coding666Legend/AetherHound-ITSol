@@ -72,6 +72,26 @@ class TestSpectrogram(unittest.TestCase):
         mean_second_half_shifted = np.mean(Sxx[idx_shifted, second_half_cols])
         self.assertGreater(mean_second_half_base, mean_second_half_shifted)
 
+    def test_zero_overlap(self):
+        """Verify noverlap=0 operates correctly."""
+        sig = generate_sine_wave(300.0, 0.5, self.sr)
+        freqs, times, Sxx = compute_spectrogram(sig, sample_rate=self.sr, nperseg=256, noverlap=0)
+        self.assertEqual(Sxx.shape[0], 256 // 2 + 1)
+        self.assertGreater(Sxx.shape[1], 1)
+
+    def test_full_length_nperseg_boundary(self):
+        """Verify nperseg == len(data) boundary operates safely."""
+        sig = generate_sine_wave(300.0, 0.05, self.sr)  # 800 samples
+        n = len(sig)
+        freqs, times, Sxx = compute_spectrogram(sig, sample_rate=self.sr, nperseg=n, noverlap=0)
+        self.assertEqual(Sxx.shape, (n // 2 + 1, 1))
+
+    def test_non_floating_dtype_rejection(self):
+        """Verify integer arrays are rejected in compute_spectrogram."""
+        int_data = np.arange(1000, dtype=np.int32)
+        with self.assertRaises(ValueError):
+            compute_spectrogram(int_data, sample_rate=self.sr, nperseg=256)
+
     def test_export_spectrogram_plot(self):
         """Verify offline image export produces a valid image file."""
         sig = generate_sine_wave(300.0, 0.5, self.sr)
@@ -83,9 +103,23 @@ class TestSpectrogram(unittest.TestCase):
         self.assertTrue(plot_file.exists())
         self.assertGreater(plot_file.stat().st_size, 1000)
 
+    def test_export_spectrogram_plot_validation(self):
+        """Verify error checking on mismatched dimensions in export_spectrogram_plot."""
+        freqs = np.linspace(0, 8000, 129)
+        times = np.linspace(0, 1.0, 30)
+        # Mismatched Sxx shape
+        with self.assertRaises(ValueError):
+            export_spectrogram_plot(freqs, times, np.zeros((100, 30)), self.temp_path / "out.png")
+
+        # Non-finite values in Sxx
+        bad_sxx = np.zeros((129, 30))
+        bad_sxx[0, 0] = np.nan
+        with self.assertRaises(ValueError):
+            export_spectrogram_plot(freqs, times, bad_sxx, self.temp_path / "out.png")
+
     def test_invalid_parameters(self):
         """Verify error checking on invalid spectrogram parameters."""
-        sig = np.array([1.0, 2.0, 3.0])
+        sig = np.array([1.0, 2.0, 3.0], dtype=np.float64)
         # Data shorter than nperseg
         with self.assertRaises(ValueError):
             compute_spectrogram(sig, nperseg=512)
@@ -96,7 +130,17 @@ class TestSpectrogram(unittest.TestCase):
 
         # noverlap >= nperseg
         with self.assertRaises(ValueError):
-            compute_spectrogram(np.ones(1000), nperseg=256, noverlap=256)
+            compute_spectrogram(np.ones(1000, dtype=np.float64), nperseg=256, noverlap=256)
+
+        # 2D array
+        with self.assertRaises(ValueError):
+            compute_spectrogram(np.ones((1000, 2), dtype=np.float64), nperseg=256)
+
+        # Boolean parameters
+        with self.assertRaises(TypeError):
+            compute_spectrogram(np.ones(1000, dtype=np.float64), sample_rate=True)
+        with self.assertRaises(TypeError):
+            compute_spectrogram(np.ones(1000, dtype=np.float64), nperseg=True)
 
 
 if __name__ == "__main__":

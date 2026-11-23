@@ -28,7 +28,7 @@ def write_wav(
         Target file path for the output WAV file.
     audio : np.ndarray
         Audio samples. Can be 1D (mono) or 2D (samples, channels).
-        Values should be normalized in range [-1.0, 1.0].
+        Must be a floating-point array with values normalized in range [-1.0, 1.0].
     sample_rate : int, optional
         Sampling frequency in Hz. Must be a positive integer. Default 44100.
     subtype : str, optional
@@ -40,14 +40,24 @@ def write_wav(
     TypeError
         If inputs have invalid types.
     ValueError
-        If sample_rate <= 0, audio contains non-finite values, or subtype is unsupported.
+        If sample_rate <= 0, audio contains non-finite values, audio is not 1D or 2D,
+        or subtype is unsupported.
     """
     if not isinstance(file_path, (str, Path)):
         raise TypeError(f"file_path must be a string or Path, got {type(file_path).__name__}.")
-    path_obj = Path(file_path)
+    path_str = str(file_path).strip()
+    if len(path_str) == 0:
+        raise ValueError("file_path must not be empty.")
+    path_obj = Path(path_str)
 
     if not isinstance(audio, np.ndarray):
         raise TypeError(f"audio must be a NumPy ndarray, got {type(audio).__name__}.")
+
+    if not np.issubdtype(audio.dtype, np.floating):
+        raise ValueError(f"audio must have a floating-point dtype, got {audio.dtype}.")
+
+    if audio.ndim not in (1, 2):
+        raise ValueError(f"audio array must be 1D or 2D, got shape {audio.shape}.")
 
     if audio.size == 0:
         raise ValueError("audio array must not be empty.")
@@ -113,7 +123,10 @@ def read_wav(
     """
     if not isinstance(file_path, (str, Path)):
         raise TypeError(f"file_path must be a string or Path, got {type(file_path).__name__}.")
-    path_obj = Path(file_path)
+    path_str = str(file_path).strip()
+    if len(path_str) == 0:
+        raise ValueError("file_path must not be empty.")
+    path_obj = Path(path_str)
 
     if not path_obj.is_file():
         raise FileNotFoundError(f"WAV file not found at: {path_obj}")
