@@ -10,7 +10,7 @@ Owner: Member 03 – DSP & Acoustic Engineer
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 import math
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 import numpy as np
 
 from acoustic.fft_analysis import compute_fft
@@ -25,6 +25,20 @@ class FeatureFrame:
     source_id: str = "acoustic_default"
     features: np.ndarray = field(default_factory=lambda: np.zeros(0, dtype=np.float64))
     feature_names: List[str] = field(default_factory=list)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Serialize FeatureFrame to a dictionary for JSON serialization and cross-module transport."""
+        return {
+            "modality": self.modality,
+            "timestamp": self.timestamp.isoformat(),
+            "source_id": self.source_id,
+            "features": self.features.tolist(),
+            "feature_names": list(self.feature_names),
+        }
+
+    def get_feature_map(self) -> Dict[str, float]:
+        """Return a mapping of feature names to their corresponding scalar values."""
+        return {name: float(val) for name, val in zip(self.feature_names, self.features)}
 
 
 def _validate_spectral_vectors(frequencies: np.ndarray, magnitudes: np.ndarray) -> None:

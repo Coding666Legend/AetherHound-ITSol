@@ -150,6 +150,23 @@ class TestFeatures(unittest.TestCase):
         self.assertEqual(len(frame.features), len(frame.feature_names))
         self.assertTrue(np.all(np.isfinite(frame.features)))
 
+    def test_feature_frame_serialization(self):
+        """Verify to_dict and get_feature_map methods on FeatureFrame."""
+        frame = create_feature_frame(self.tone_1000, sample_rate=self.sr, source_id="sensor_1")
+        d = frame.to_dict()
+        self.assertEqual(d["modality"], "acoustic")
+        self.assertEqual(d["source_id"], "sensor_1")
+        self.assertIsInstance(d["timestamp"], str)
+        self.assertIsInstance(d["features"], list)
+        self.assertEqual(len(d["features"]), len(d["feature_names"]))
+
+        fmap = frame.get_feature_map()
+        self.assertIsInstance(fmap, dict)
+        self.assertIn("dominant_frequency", fmap)
+        self.assertAlmostEqual(fmap["dominant_frequency"], 1000.0, delta=1.0)
+        self.assertIn("rms_energy", fmap)
+        self.assertAlmostEqual(fmap["rms_energy"], 1.0 / np.sqrt(2.0), delta=0.01)
+
     def test_create_feature_frame_validation(self):
         """Verify source_id and timestamp validation in create_feature_frame."""
         # Empty source_id
