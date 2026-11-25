@@ -135,6 +135,12 @@ def detect_spectral_peaks(
     if not np.all(np.isfinite(frequencies)) or not np.all(np.isfinite(magnitudes)):
         raise ValueError("frequencies and magnitudes must contain only finite numbers.")
 
+    if np.any(frequencies < 0.0):
+        raise ValueError("frequencies array must not contain negative values.")
+
+    if np.any(magnitudes < 0.0):
+        raise ValueError("magnitudes array must not contain negative values.")
+
     if len(magnitudes) == 0:
         return []
 

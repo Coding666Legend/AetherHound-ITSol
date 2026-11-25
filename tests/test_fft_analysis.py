@@ -157,6 +157,18 @@ class TestFFTAnalysis(unittest.TestCase):
         with self.assertRaises(ValueError):
             compute_fft(np.array([1.0, 2.0]), window="invalid_window")
 
+    def test_detect_spectral_peaks_negative_values_regression(self):
+        """Verify negative frequency bins or negative magnitudes raise ValueError in peak detection."""
+        neg_freqs = np.array([-5.0, 0.0, 5.0], dtype=np.float64)
+        mags = np.array([0.1, 0.5, 0.1], dtype=np.float64)
+        with self.assertRaises(ValueError):
+            detect_spectral_peaks(neg_freqs, mags)
+
+        valid_freqs = np.array([0.0, 5.0, 10.0], dtype=np.float64)
+        neg_mags = np.array([0.1, -0.5, 0.1], dtype=np.float64)
+        with self.assertRaises(ValueError):
+            detect_spectral_peaks(valid_freqs, neg_mags)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -119,7 +119,10 @@ def generate_fan_noise(
         raise TypeError(f"Invalid NumPy dtype specification: {dtype}.") from err
 
     if not np.issubdtype(target_dtype, np.floating):
-        raise ValueError(f"Output dtype must be floating-point, got {target_dtype}.")
+        raise ValueError(
+            f"Output dtype must be a floating-point type (e.g., np.float64, np.float32), "
+            f"got {target_dtype}."
+        )
 
     if sample_rate <= 0:
         raise ValueError(f"Sample rate must be positive, got {sample_rate} Hz.")
@@ -164,7 +167,11 @@ def generate_fan_noise(
 
     num_samples = int(round(duration * sample_rate_int))
     if num_samples <= 0:
-        raise ValueError(f"Duration {duration}s produces 0 samples at {sample_rate_int}Hz.")
+        min_duration = 0.5 / sample_rate_int
+        raise ValueError(
+            f"Duration ({duration} s) at sample rate {sample_rate_int} Hz produces 0 samples. "
+            f"Duration must be at least ~{min_duration:.2e} s to yield at least 1 sample."
+        )
 
     t = np.arange(num_samples, dtype=np.float64) / sample_rate_int
     tonal_signal = np.zeros(num_samples, dtype=np.float64)
@@ -280,7 +287,10 @@ def generate_acoustic_anomaly(
         raise TypeError(f"Invalid NumPy dtype specification: {dtype}.") from err
 
     if not np.issubdtype(target_dtype, np.floating):
-        raise ValueError(f"Output dtype must be floating-point, got {target_dtype}.")
+        raise ValueError(
+            f"Output dtype must be a floating-point type (e.g., np.float64, np.float32), "
+            f"got {target_dtype}."
+        )
 
     if sample_rate <= 0:
         raise ValueError(f"Sample rate must be positive, got {sample_rate} Hz.")
@@ -332,7 +342,11 @@ def generate_acoustic_anomaly(
 
     num_samples = int(round(duration * sample_rate_int))
     if num_samples <= 0:
-        raise ValueError(f"Duration produces 0 samples.")
+        min_duration = 0.5 / sample_rate_int
+        raise ValueError(
+            f"Duration ({duration} s) at sample rate {sample_rate_int} Hz produces 0 samples. "
+            f"Duration must be at least ~{min_duration:.2e} s to yield at least 1 sample."
+        )
 
     t = np.arange(num_samples, dtype=np.float64) / sample_rate_int
     signal = np.zeros(num_samples, dtype=np.float64)

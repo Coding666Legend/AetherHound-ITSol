@@ -57,6 +57,12 @@ def _validate_spectral_vectors(frequencies: np.ndarray, magnitudes: np.ndarray) 
     if not np.all(np.isfinite(frequencies)) or not np.all(np.isfinite(magnitudes)):
         raise ValueError("frequencies and magnitudes must contain only finite numbers.")
 
+    if np.any(frequencies < 0.0):
+        raise ValueError("frequencies array must not contain negative frequency values.")
+
+    if np.any(magnitudes < 0.0):
+        raise ValueError("magnitudes array must not contain negative magnitude values.")
+
 
 def compute_rms_energy(data: np.ndarray) -> float:
     """Compute the Root Mean Square (RMS) energy of a time-domain signal."""
@@ -64,6 +70,8 @@ def compute_rms_energy(data: np.ndarray) -> float:
         raise TypeError(f"data must be a NumPy ndarray, got {type(data).__name__}.")
     if not np.issubdtype(data.dtype, np.floating):
         raise ValueError(f"data must have a floating-point dtype, got {data.dtype}.")
+    if data.ndim != 1:
+        raise ValueError(f"data must be a 1D array, got {data.ndim}D.")
     if not np.all(np.isfinite(data)):
         raise ValueError("data contains non-finite values.")
     if data.size == 0:
@@ -77,6 +85,8 @@ def compute_zero_crossing_rate(data: np.ndarray) -> float:
         raise TypeError(f"data must be a NumPy ndarray, got {type(data).__name__}.")
     if not np.issubdtype(data.dtype, np.floating):
         raise ValueError(f"data must have a floating-point dtype, got {data.dtype}.")
+    if data.ndim != 1:
+        raise ValueError(f"data must be a 1D array, got {data.ndim}D.")
     if not np.all(np.isfinite(data)):
         raise ValueError("data contains non-finite values.")
     if len(data) < 2:
@@ -106,6 +116,14 @@ def compute_spectral_bandwidth(
 ) -> float:
     """Compute the Spectral Bandwidth (spectral spread / variance around centroid) in Hz."""
     _validate_spectral_vectors(frequencies, magnitudes)
+    if centroid is not None:
+        if isinstance(centroid, bool) or not isinstance(centroid, (int, float)):
+            raise TypeError(f"centroid must be numeric, got {type(centroid).__name__}.")
+        if not math.isfinite(centroid):
+            raise ValueError(f"centroid must be a finite number, got {centroid}.")
+        if centroid < 0.0:
+            raise ValueError(f"centroid must be non-negative, got {centroid} Hz.")
+
     sum_mag = np.sum(magnitudes)
     if sum_mag == 0.0:
         return 0.0

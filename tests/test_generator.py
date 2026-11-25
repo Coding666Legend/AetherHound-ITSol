@@ -308,6 +308,39 @@ class TestAcousticAnomalyGenerator(unittest.TestCase):
                 harmonics=(1.0,),
             )
 
+    def test_zero_sample_duration_regression(self):
+        """Verify that micro-durations yielding 0 samples raise clear ValueError with guidance."""
+        with self.assertRaises(ValueError) as ctx:
+            generate_fan_noise(base_frequency=200.0, duration=1e-8, sample_rate=44100)
+        self.assertIn("produces 0 samples", str(ctx.exception))
+
+        with self.assertRaises(ValueError) as ctx2:
+            generate_acoustic_anomaly(base_frequency=200.0, duration=1e-8, sample_rate=44100)
+        self.assertIn("produces 0 samples", str(ctx2.exception))
+
+    def test_generator_dtype_validation_regression(self):
+        """Verify integer and boolean dtypes are rejected consistently across generators."""
+        with self.assertRaises(ValueError):
+            generate_fan_noise(base_frequency=200.0, duration=0.1, dtype=np.int32)
+        with self.assertRaises(ValueError):
+            generate_acoustic_anomaly(base_frequency=200.0, duration=0.1, dtype=np.int16)
+        with self.assertRaises(ValueError):
+            generate_fan_noise(base_frequency=200.0, duration=0.1, dtype=bool)
+
+    def test_generator_deterministic_seed_regression(self):
+        """Verify reproducible signal generation across runs with identical seeds."""
+        fan_a = generate_fan_noise(base_frequency=150.0, duration=0.2, noise_level=0.2, seed=99)
+        fan_b = generate_fan_noise(base_frequency=150.0, duration=0.2, noise_level=0.2, seed=99)
+        np.testing.assert_array_equal(fan_a, fan_b)
+
+        anomaly_a = generate_acoustic_anomaly(
+            base_frequency=150.0, duration=0.2, noise_level=0.1, seed=123
+        )
+        anomaly_b = generate_acoustic_anomaly(
+            base_frequency=150.0, duration=0.2, noise_level=0.1, seed=123
+        )
+        np.testing.assert_array_equal(anomaly_a, anomaly_b)
+
 
 if __name__ == "__main__":
     unittest.main()

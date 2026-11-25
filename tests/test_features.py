@@ -198,6 +198,49 @@ class TestFeatures(unittest.TestCase):
         with self.assertRaises(ValueError):
             extract_acoustic_features(np.ones((100, 2), dtype=np.float64))
 
+    def test_spectral_vector_negative_values_regression(self):
+        """Verify negative frequency bins or negative magnitudes raise ValueError."""
+        freqs = np.array([-10.0, 0.0, 10.0], dtype=np.float64)
+        mags = np.array([1.0, 1.0, 1.0], dtype=np.float64)
+        with self.assertRaises(ValueError):
+            compute_spectral_centroid(freqs, mags)
+
+        valid_freqs = np.array([0.0, 10.0, 20.0], dtype=np.float64)
+        negative_mags = np.array([1.0, -0.5, 1.0], dtype=np.float64)
+        with self.assertRaises(ValueError):
+            compute_spectral_centroid(valid_freqs, negative_mags)
+        with self.assertRaises(ValueError):
+            compute_dominant_frequency(valid_freqs, negative_mags)
+        with self.assertRaises(ValueError):
+            compute_spectral_rolloff(valid_freqs, negative_mags)
+
+    def test_time_domain_features_multidimensional_regression(self):
+        """Verify 2D arrays are strictly rejected by compute_rms_energy and compute_zero_crossing_rate."""
+        arr_2d = np.ones((50, 2), dtype=np.float64)
+        with self.assertRaises(ValueError):
+            compute_rms_energy(arr_2d)
+        with self.assertRaises(ValueError):
+            compute_zero_crossing_rate(arr_2d)
+
+    def test_spectral_bandwidth_centroid_argument_regression(self):
+        """Verify centroid parameter validation in compute_spectral_bandwidth."""
+        freqs = np.array([100.0, 200.0, 300.0], dtype=np.float64)
+        mags = np.array([1.0, 2.0, 1.0], dtype=np.float64)
+        # Valid explicit centroid
+        bw = compute_spectral_bandwidth(freqs, mags, centroid=200.0)
+        self.assertIsInstance(bw, float)
+        self.assertGreater(bw, 0.0)
+
+        # Invalid centroid types and bounds
+        with self.assertRaises(TypeError):
+            compute_spectral_bandwidth(freqs, mags, centroid="200.0")
+        with self.assertRaises(TypeError):
+            compute_spectral_bandwidth(freqs, mags, centroid=True)
+        with self.assertRaises(ValueError):
+            compute_spectral_bandwidth(freqs, mags, centroid=float("nan"))
+        with self.assertRaises(ValueError):
+            compute_spectral_bandwidth(freqs, mags, centroid=-10.0)
+
 
 if __name__ == "__main__":
     unittest.main()
