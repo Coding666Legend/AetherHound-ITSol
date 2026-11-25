@@ -1,0 +1,11 @@
+{
+  "features": [
+    "signal_power",
+    "spectral_entropy",
+    "peak_frequency",
+    "bandwidth",
+    "noise_level"
+  ],
+  "input_dim": 5,
+  "threshold": 1.969702124595642
+}
