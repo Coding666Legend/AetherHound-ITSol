@@ -34,13 +34,23 @@ from acoustic.generator import (
     generate_fan_noise,
     generate_sine_wave,
 )
+from acoustic.pipeline import (
+    AcousticPipeline,
+    FilterConfig,
+    ProcessingResult,
+    SpectrogramConfig,
+)
 from acoustic.spectrogram import compute_spectrogram, export_spectrogram_plot
 
 __version__ = "1.0.0"
 __author__ = "Member 03 – DSP & Acoustic Engineer"
 
 __all__ = [
+    "AcousticPipeline",
     "FeatureFrame",
+    "FilterConfig",
+    "ProcessingResult",
+    "SpectrogramConfig",
     "analyze_harmonics",
     "butter_bandpass_filter",
     "butter_highpass_filter",
